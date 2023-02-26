@@ -1,0 +1,7 @@
+backend/authentication/.env
+backend/RoadRush/.env
+backend/RoadRush/__pycache__
+backend/authentication/__pycache__
+backend/venv
+backend/db.sqlite3
+backend/authentication/management/commands/__pycache__
