@@ -1,0 +1,44 @@
+<script>
+ let socket= new WebSocket(
+    url="ws://"
+        +window.location.host
+        +'/ws/rider/'
+        +"dadul"
+        +"/"
+ )
+
+ socket.onopen=()=>{
+    console.log(`Connection open to ${socket.url}`);
+
+    socket.onmessage=(e)=>{
+        const data=JSON.parse(e.data);
+        console.log('[RECEIVING]',data);
+    }
+
+    socket.onclose=()=>{
+        console.log(`Connection closed to ${socket.url}`)
+    }
+
+    data={
+            'location':{
+                'longitude':88.6128468,
+                'latitude':27.3278476,
+                 },
+            'search':true
+        }
+        // socket.send(JSON.stringify(data))
+    setInterval(()=>{
+        // 88.6128468 27.3278476
+        data={
+            'location':{
+                'longitude':88.6128468,
+                'latitude':27.3278476,
+                 },
+            'search':true
+        }
+        socket.send(JSON.stringify(data));
+    },2000)
+
+ }
+</script>
+<h1>Rider Home asdasds</h1>

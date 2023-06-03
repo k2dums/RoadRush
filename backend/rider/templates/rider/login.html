@@ -1,0 +1,8 @@
+<form  action="{% url 'rider_login' %}" method="post">
+    {% csrf_token %}
+    <input type="email" name="email" placeholder="email"></input>
+    <input type="text" name="password" placeholder="password"></input>
+    <input type="submit" value="Submit">
+</form>
+
+<!-- THIS WOULD HAVE EASILY DONE BY DSRF LIBARARY -->
