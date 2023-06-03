@@ -1,0 +1,10 @@
+<form action="{% url 'driver_register' %}" method="POST">
+    {% csrf_token %}
+    <input type="text" name="username"placeholder='username'>
+    <input type="email" name="email" placeholder="email">
+    <input type="text" name="carModel" placeholder="carModel">
+    <input type="text" name="carNumber" placeholder="carNumber">
+    <input type="text" name="carId" placeholder="carId">
+    <input type="password" name="password" placeholder='password'>
+    <input type="submit" value="submit">
+</form>
