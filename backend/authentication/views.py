@@ -9,8 +9,8 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 import jwt
 from django.conf import settings
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+# from drf_yasg.utils import swagger_auto_schema
+# from drf_yasg import openapi
 class RegisterView(generics.GenericAPIView):
     serializer_class=RegisterSerializer
     def post(self,request):
@@ -46,8 +46,8 @@ class RegisterView(generics.GenericAPIView):
 #we need swagger which field to create
 class VerifyEmail(views.APIView):
     serializer_class=EmailVerificationSerializer
-    token_param_config=openapi.Parameter('token',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)#open api, this has to be here before open api
-    @swagger_auto_schema(manual_parameters=[token_param_config])
+    # token_param_config=openapi.Parameter('token',in_=openapi.IN_QUERY,description='Description',type=openapi.TYPE_STRING)#open api, this has to be here before open api
+    # @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self,request):
         token=request.GET.get('token') # as the token is in the query parameter of token
         try:#trying to decode the token
