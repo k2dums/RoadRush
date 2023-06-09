@@ -21,6 +21,7 @@ from drf_yasg import openapi
 
 
 urlpatterns = [
+    path('',include('apis.urls')),
     path("admin/", admin.site.urls),
     # path('auth/',include('authentication.urls')),
     path('rider/',include('rider.urls')),
