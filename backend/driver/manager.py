@@ -2,7 +2,8 @@
 from driver.models import Driver
 from django.contrib.gis.geos import fromstr
 from django.contrib.gis.geos import Point
-from django.contrib.gis.measure import Distance 
+from django.contrib.gis.measure import D
+from django.contrib.gis.db.models.functions import Distance
 from authentication.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -86,16 +87,27 @@ class DriverManager:
         assert isinstance(driver,Driver)
         driver.occupiedStatus=occupiedStatus
         driver.save()
+    
+    @classmethod
+    def updateDriverOccupiedStatus_driverObj(cls,driver,occupiedStatus):
+        """Updates the availabilty of the driver:Boolean """
+        assert isinstance(driver,Driver)
+        driver.occupiedStatus=occupiedStatus
+        driver.save()
+        
         
     @classmethod
-    def getCars(cls,location,ProximityValue):
+    def getCars(cls,_location,carType,ProximityValue):
         """Returns all the cabs withtin the promity value from the location"""
-        longitude=location['longitude']
-        latitude=location['latitude']
-
+        longitude=_location['longitude']
+        latitude=_location['latitude']
+        # ProximityValue=ProximityValue*1000
         userLocation=Point(float(longitude),float(latitude),srid=4236)
 
-        drivers=Driver.objects.filter(location__distance_lt=(userLocation, Distance(km=ProximityValue)))
+        if not(carType) or carType.upper==None:
+            drivers=Driver.objects.filter(location__distance_lte=(userLocation, D(km=ProximityValue))).annotate(distance=Distance('location',userLocation)).order_by('distance') 
+            return drivers 
+        drivers=Driver.objects.filter(location__distance_lte=(userLocation, D(km=ProximityValue)),carType=carType.upper()).annotate(distance=Distance('location',userLocation)).order_by('distance')        
         return drivers
       
 
