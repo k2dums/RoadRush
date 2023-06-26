@@ -3,6 +3,7 @@ from channels.generic.websocket import WebsocketConsumer
 from enum import Enum
 from driver.controller import DriverContoller
 import time
+from trips.manager import TripsManager
 class RiderStatus(Enum):
     """
     RIDING:the rider is intransit, enoroute to destination
@@ -22,33 +23,39 @@ class RiderStatus(Enum):
 class RiderConsumer(WebsocketConsumer):
     MAX_BOOK_TRIES=5
     def connect(self):
-        self.rider_id=self.scope['url_route']['kwargs']['rider_id']
+        self.rider_name=self.scope['url_route']['kwargs']['rider_name']
         self.rider_status=RiderStatus.NONE
         self.previousLocation=None
         self.proximityValue=0.1
         if not self.rider_status:
             self.rider_status=RiderStatus.NONE
-        print('Connection request from RIDER:%s' % self.rider_id)
+        print('Connection request from RIDER:%s' % self.rider_name)
         self.accept()
         
 
     def disconnect(self,close_code):
-        print('[RIDER] Disconnected RIDER:%s' % self.rider_id)
-
+        print('[RIDER] Disconnected RIDER:%s' % self.rider_name)
+    
+  
     def receive(self, text_data):
         #limit the rate at which we are getting receive per 1 sec receive only 1 location ping 
         text_data_json=json.loads(text_data)
         search=text_data_json.get('search')
         book=text_data_json.get('book')
+        newSearch=text_data_json.get('newSearch')
+        self.carType=text_data_json.get('carType')
         # print('Closeby drivers',len(drivers))
         # print('Proxitmity Value',self.proximityValue)
+        print(f'Data sent by {self.rider_name}-{text_data}')
+        if newSearch: #resets the promityValue for scan to 1km 
+             self.proximityValue=0.1
         if (search):
-            location=text_data_json.get('location')#will get location per 1 interval
-            drivers,self.proximityValue=DriverContoller.getCars(location,self.proximityValue)
-            self.send(text_data=json.dumps({'drivers':[driver.serialize() for driver in drivers]}))
+            location=text_data_json.get('location')#will get location per 5sec interval
+            drivers,self.proximityValue=DriverContoller.getCars(location,self.carType,self.proximityValue)
+            self.send(text_data=json.dumps({'drivers':[ driverSerialization(driver) for driver in drivers]}))
+
+
         # drivers=None
-        # if search: #resets the promityValue for scan to 1km 
-        #     self.proximityValue=1
         # if book:
         #     if location:
         #         tries=1
@@ -76,5 +83,15 @@ class RiderConsumer(WebsocketConsumer):
         # #what if we can't find the drivers (try till x sec then return null drivers)
         # #what if we are searching and we get pinged a locati        
     
-
+def driverSerialization(driver):
+    return {
+            'username':driver.username,
+            'email':driver.email,
+            'carId':driver.carId,
+            'carNumber':driver.carNumber,
+            'carModel':driver.carModel,
+            'distance':str(driver.distance),
+            'longitude':str(driver.location[0]),
+            'latitude':str(driver.location[1]),
+        }
         
