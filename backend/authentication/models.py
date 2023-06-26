@@ -40,12 +40,12 @@ class UserManager(BaseUserManager):
 
 #inherit AbstractBaseUser giving acess to regular user fields. PermissionMixin 
 class User(AbstractBaseUser,PermissionsMixin):
-    class Types(models.TextChoices):
+    class UserTypes(models.TextChoices):
         RIDER='RIDER','Rider'
         DRIVER='DRIVER','Driver'
         NONE='NONE','None'
 
-    type=models.CharField(_('Type'),max_length=50,choices=Types.choices,default=Types.RIDER)
+    type=models.CharField(_('UserType'),max_length=50,choices=UserTypes.choices,default=UserTypes.RIDER)
     username=models.CharField(max_length=255,unique=True,db_index=True) #db_index True ,making indexable makes searching on username fast
     email=models.EmailField(max_length=255,unique=True,db_index=True)
     is_verified=models.BooleanField(default=False)#to know if the user is verified or not
