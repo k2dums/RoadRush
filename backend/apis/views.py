@@ -31,6 +31,11 @@ def api_path(request):
     },
 
 'rider':{
+    
+    'riders/':{
+        'method':'GET',
+        'description':'Checks if the user is logged in or not. Checking if identity of logged in user is known'
+    },
     'rider/login':{
                     'method':'POST',
                     'description':'for getting rider login'
@@ -49,7 +54,7 @@ def api_path(request):
     },
     'rider/<str:username>/test_loc/':{
                 'method':'GET',
-                    'description':'Testing purpose getting the rider location baed on username'
+                    'description':'Testing purpose getting the rider location based on username'
     },
 
 }
