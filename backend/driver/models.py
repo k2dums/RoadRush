@@ -2,12 +2,13 @@
 from django.contrib.gis.db import models
 from authentication.models import User
 from django.contrib.gis.geos import Point
+from django.utils.translation import gettext_lazy as _
 # Create your models here.
 
 
 class DriverManager(models.Manager):
     def get_queryset(self,*args,**kawargs):
-        return super().get_queryset(*args,**kawargs).filter(type=User.Types.DRIVER)
+        return super().get_queryset(*args,**kawargs).filter(type=User.UserTypes.DRIVER)
     def create_user(self,username,email,password,carId,carModel,carNumber):
         driver=self.model(username=username,email=email,carId=carId,carModel=carModel,carNumber=carNumber,location=Point(12,12,srid=4236))
         driver.set_password(password)
@@ -15,17 +16,21 @@ class DriverManager(models.Manager):
         return driver
 
 class Driver(User):
+
+    class CarTypes(models.TextChoices):
+        NORMAL='NORMAL','Normal'
+        LUXURY='LUXURY','Luxury'
     objects=DriverManager()
     carId=models.CharField(max_length=256,default='NA',unique=True,)
     carModel=models.CharField(max_length=256,default='NA')
     carNumber=models.CharField(max_length=256,default='Na')
     location=models.PointField()
     occupiedStatus=models.BooleanField(default=False)
-    
+    carType=models.CharField(_('CarType'),max_length=20,choices=CarTypes.choices,default=CarTypes.NORMAL)
 
     def save(self,*args,**kwargs):
         print("pk",self.pk)
-        self.type=User.Types.DRIVER
+        self.type=User.UserTypes.DRIVER
         return super().save(*args,**kwargs)
     
     def serialize(self):
