@@ -50,8 +50,8 @@ INSTALLED_APPS = [
     'authentication',
     'driver',
     'rider',
-    'apis'
-    # 'trips',
+    'apis',
+    'trips',
 ]
 
 MIDDLEWARE = [
