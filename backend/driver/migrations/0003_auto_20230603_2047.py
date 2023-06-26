@@ -15,7 +15,7 @@ CAR_MODELS=[" Maruti Suzuki Celerio","Hyundai Santro","Maruti Suzuki Wagon R","T
 def load_data(apps,schema_editor):
     UniqueViolation = errors.lookup('23505')
     Driver=apps.get_model('driver','Driver')
-    number=6000
+    number=200
     permlist=list(permutations('wxyz'))
     pernumber=0
     for DATA_FILENAME in DATA_FILENAMES:
