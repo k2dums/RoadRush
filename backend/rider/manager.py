@@ -5,6 +5,12 @@ from django.core.validators import validate_email
 
 class RiderManager:
     @classmethod
+    def getRider(cls,username):
+        """Returns the rider objects"""
+        riderObj=Rider.objects.get(username=username)
+        assert isinstance(riderObj,Rider)
+        return riderObj
+    @classmethod
     def riderDetails(cls,username):
         """Returns the Rider details such as username and if ratings"""
         user=Rider.objects.get(username=username)
