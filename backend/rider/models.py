@@ -6,7 +6,7 @@ from authentication.models import User
 
 class RiderManager(models.Manager):
     def get_queryset(self,*args,**kawargs):
-        return super().get_queryset(*args,**kawargs).filter(type=User.Types.RIDER)
+        return super().get_queryset(*args,**kawargs).filter(type=User.UserTypes.RIDER)
     def create_user(self,username,email,password=None):
         # return User.objects.create_user(username,email,password)
         rider=self.model(username=username,email=email)
