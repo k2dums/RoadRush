@@ -27,15 +27,15 @@ class DriverContoller:
 
  
     @classmethod
-    def getCars(cls,location,proximityValue=0.1):
+    def getCars(cls,location,carType,proximityValue=0.1):
         """returns the cars from the location """
         # we can add the stratergy here
-        drivers=DriverManager.getCars(location,proximityValue)
+        drivers=DriverManager.getCars(location,carType,proximityValue)
         print(f'At proximity {proximityValue} km, {len(drivers)} cars')
         while not(drivers) and proximityValue <= DriverContoller.PROXIMITY_MAX:
             proximityValue+=0.2 #if cannot find the drivers in this proximity, add 1 more km to the proximity
-            drivers=DriverManager.getCars(location,proximityValue)
-            print(f'At proximity {proximityValue} km, {len(drivers)} cars')
+            drivers=DriverManager.getCars(location,carType,proximityValue)
+            print(f'At proximity {proximityValue} km radius, {len(drivers)} cars')
         return drivers,proximityValue
         # drivers=DriverManager.getCars(location,proximityValue)
         # return drivers,proximityValue
