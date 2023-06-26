@@ -27,7 +27,7 @@ def loginView(request):
                     'carId':driver.carId,
                     'carNumber':driver.carNumber,
                 }
-                return JsonResponse({'rider':driver_details},status=200)
+                return JsonResponse({'driver':driver_details},status=200)
             else:
                 return JsonResponse({'error':'invalid email or password'})
         except  Exception as e:
@@ -49,6 +49,7 @@ def registerView(request):
 
         driver=DriverContoller.registerDriver(username=username,email=email,password=password,carModel=carModel,carNumber=carNumber,carId=carId)
         if isinstance(driver,Driver):
+            login(request,driver)
             return JsonResponse(driver.serialize(),status=200)
         else:
             return JsonResponse(driver,status=404)
