@@ -1,7 +1,15 @@
 backend/authentication/.env
 backend/RoadRush/.env
 backend/RoadRush/__pycache__
-backend/authentication/__pycache__
+__pycache__
 backend/venv
 backend/db.sqlite3
 backend/authentication/management/commands/__pycache__
+maps_service
+GDAL-3.4.3-cp310-cp310-win_amd64.whl
+manager
+controller
+frontend
+DockerFile
+maps_service.py
+venv
