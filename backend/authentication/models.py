@@ -63,7 +63,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     objects=UserManager()
 
     def __str__(self):
-        return self.email
+        return self.username
     
 
     #token helps to do something with user and user
