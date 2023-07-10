@@ -1,6 +1,7 @@
 # from django.db import models
 from django.contrib.gis.db import models
 from authentication.models import User
+from trips.models import Trips
 from django.contrib.gis.geos import Point
 from django.utils.translation import gettext_lazy as _
 # Create your models here.
@@ -27,9 +28,8 @@ class Driver(User):
     location=models.PointField()
     occupiedStatus=models.BooleanField(default=False)
     carType=models.CharField(_('CarType'),max_length=20,choices=CarTypes.choices,default=CarTypes.NORMAL)
-
+    currentTrip=models.ForeignKey(Trips,null=True,on_delete=models.SET_NULL,blank=True,related_name='driverofTrip',)
     def save(self,*args,**kwargs):
-        print("pk",self.pk)
         self.type=User.UserTypes.DRIVER
         return super().save(*args,**kwargs)
     
