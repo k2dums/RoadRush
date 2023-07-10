@@ -1,6 +1,6 @@
 from channels.generic.websocket import WebsocketConsumer
 import json
-from driver.controller import DriverContoller
+from controllers.controllers import DriverContoller
 class DriverConsumer(WebsocketConsumer):
     def connect(self):
         self.carId=self.scope['url_route']['kwargs']['driver_id']
