@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from .controller import DriverContoller
+from controllers.controllers import DriverContoller
 from django.http import HttpResponse,JsonResponse,HttpResponseRedirect
 from django.urls import reverse
 from .models import Driver
