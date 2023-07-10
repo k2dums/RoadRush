@@ -3,4 +3,4 @@ from .models import Driver
 from django.contrib import admin
 @admin.register(Driver)
 class DriverAdmin(OSMGeoAdmin):
-    list_display = ('username', 'location','carId')
+    list_display = ('carId','username', 'location','carId')
