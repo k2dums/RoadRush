@@ -1,5 +1,6 @@
 from django.db import models
 from authentication.models import User
+# from trips.models import Trips
 # Create your models here.
 
 
@@ -17,19 +18,24 @@ class RiderManager(models.Manager):
 
 class Rider(User):
     objects=RiderManager()
-    class Meta:#proxy models they don't create new tables same table of the User table
-        proxy=True
+    # class Meta:#proxy models they don't create new tables same table of the User table
+    #     proxy=True
 
+    onTrip=models.BooleanField(default=False)
+    currentTrip=models.ForeignKey('trips.Trips',null=True,blank=True,on_delete=models.SET_NULL,related_name='riderofTrip')
     def save(self,*args,**kwargs):
-        if not self.pk:#if record doesn't exist
-            self.type=User.Types.RIDER
-        
+        self.type=User.UserTypes.RIDER
         return super().save(*args,**kwargs)
     
     def serialize(self):
         return {
             'username':self.username,
             'email':self.email,
+            'onTrip':self.onTrip,
+            'currentTrip':str(self.currentTrip)
         }
+    
+    def __str__(self):
+        return f"{self.username}"
 
 
