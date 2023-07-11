@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'rider',
     'apis',
     'trips',
+    'strategies',
 ]
 
 MIDDLEWARE = [
