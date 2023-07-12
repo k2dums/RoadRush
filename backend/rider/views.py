@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from rider.controller import RiderController
+from controllers.controllers import RiderController
 from django.http import JsonResponse,HttpResponseRedirect,HttpResponse
 from django.urls import reverse
 from rest_framework import generics
@@ -9,12 +9,27 @@ from authentication.models import User
 from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 # Create your views here.
 
 
-def test(request):
-    return render(request,'rider/index.html',{'useremail':request.user,'username':request.user.username})
+def index(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'Error':"User not logged in"},status=404)
+    user=None
+    try:
+        user=Rider.objects.get(username=request.user.username)
+    except:
+        return JsonResponse({'Error':'Current User is not a rider'})
+    if user:
+        response=user.serialize()
+        if user.currentTrip:
+            driver=user.currentTrip.driver
+            carId=driver.carId
+            response['carId']=carId
+        return JsonResponse(response)
 
+ 
 @csrf_exempt
 def loginView(request):
     if request.method=='POST':
@@ -47,7 +62,7 @@ def registerView(request):
             login(request,rider)
             return JsonResponse(rider.serialize(),status=200)
         else:
-            return JsonResponse(rider,status=404)
+            return JsonResponse(rider,status=404,)
 
 
     return render(request,'rider/register.html')
@@ -68,9 +83,15 @@ def book(request,username):
     # RiderController.book(carId,location,destination)
 
 
-def rider_test_loc(request,username):
-    return render(request,'rider/test_loc.html',{'username':username})
+def rider_test_loc(request):
+    return render(request,'rider/test_loc.html',{'username':request.user.username})
 
+def rider_test(request):
+    rider=RiderController.getRider(request.user.username)
+    trip=rider.currentTrip
+    if rider.currentTrip:
+        trip=rider.currentTrip.serialize()
+    return render(request,'rider/index.html',{'useremail':request.user,'username':rider.username,'currentTrip':trip})
 
 def all_riders(request):
     riders=list(Rider.objects.values())
