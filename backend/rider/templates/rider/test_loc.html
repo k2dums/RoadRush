@@ -42,7 +42,7 @@
                 <div class="container "> </div>
                 <div class="row">
                     <div class="col" style="border:2px solid black;">   
-                        <div  id="map" style="height: 650px;width: 800px;"></div>
+                        <div  id="map" style="height: 650px;width: 600px;"></div>
                     </div>
                     <div class="col mr-0">   
                         <div  id="drivers"></div>
@@ -162,9 +162,9 @@
 
 
 
-    function sendServer(search,carType,lat,long){
+    function sendServer(test,carType,lat,long){
         chatSocket.send(JSON.stringify({
-             'search':search,
+             'test':test,
              'carType':carType,
              'location': {'latitude': lat ,
                            'longitude':long,
