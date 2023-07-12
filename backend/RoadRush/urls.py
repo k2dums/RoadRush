@@ -26,4 +26,5 @@ urlpatterns = [
     # path('auth/',include('authentication.urls')),
     path('rider/',include('rider.urls')),
     path('driver/',include('driver.urls')),
+    path('trip/',include('trips.urls')),
 ]
