@@ -42,8 +42,7 @@
 </script> -->
 
 {% if user.is_authenticated %}
-<h1>Logged in User:{{ useremail }} </h1>
-<a href="{% url 'rider_logout' %}"> <input type="button" value="Log Out"></a>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,16 +59,44 @@
 <body>
     {{ username|json_script:"rider-name" }}
 
-
+    <div class="container">
+        <div class="row">
+            <div class="col-10"><h1>Logged in User:{{ useremail }} </h1></div>
+            <div class="col"><a href="{% url 'rider_logout' %}"> <input type="button" class="btn btn-primary" value="Log Out"></a></div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h5>Current Trip:{{ currentTrip }}</h5>
+            </div>
+           
+        </div>
+    </div>
 
     <div class="d-flex align-items-center text-center" style="min-height: 100vh">
         <div class="box w-100 text-success">
           <h2>This is the test location for rider {{username}} </h3>
+           <div id="origin" class="">
+            <div class="col">
+                <h5>Origin</h5>
+                <label for="origin_lat">Latitude</label>
+                <input id="origin_lat" name="origin_lat" type="text"   value="27.3283">
+                <label for="origin_long" >longitude</label>
+                <input id='origin_long' name="origin_long" type="text"  value="88.613">
+            </div>
 
-          <label for="lat">Latitude</label>
-          <input id="lat" type="text"  id="latitude" value="27.3283">
-          <label for="long">longitude</label>
-          <input id='long' type="text" id="longitude" value="88.6124">
+            <div class="col">
+                <h5>Destination</h5>
+                <label for="destination_lat">Latitude</label>
+                <input id="destination_lat" type="text"   value="27.340045184781783">
+                <label for="destination_long">longitude</label>
+                <input id='destination_long' type="text"  value="88.63721973759931">
+            </div>
+            
+            
+           
+           </div> 
+           
+         
           <br>
           <div>
             <label class="conatiner h5 m-4">All
@@ -157,11 +184,13 @@
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-danger');
                 btn.textContent='Stop Search';
-                let lat=document.getElementById('lat').value;
-                let long=document.getElementById('long').value;
+                let origin_lat=document.getElementById('origin_lat').value;
+                let origin_long=document.getElementById('origin_long').value;
+                let destination_lat=document.getElementById('destination_lat').value;
+                let destination_long=document.getElementById('destination_long').value;
                 let mapClear=document.getElementById('map').innerText=""
                 mapView=new ol.View({
-                center:ol.proj.fromLonLat([long,lat]),
+                center:ol.proj.fromLonLat([origin_long,origin_lat]),
                 zoom:14,
                 });
                 map=new ol.Map({
@@ -172,7 +201,7 @@
      source: new ol.source.Vector({
          features: [
              new ol.Feature({
-                 geometry: new ol.geom.Point(ol.proj.fromLonLat([long,lat]))
+                 geometry: new ol.geom.Point(ol.proj.fromLonLat([origin_long,origin_lat]))
              })
          ]
      })
@@ -181,11 +210,13 @@
                 map.addLayer(osmTile);
                 map.addLayer(layer)
                 chatSocket.send(JSON.stringify({
-                                    'newSearch':true,
-                                    'carType':carType
+                                    "search":true,
+                                    "carType":carType,
+                                    "location":{"latitude":origin_lat,"longitude":origin_long},
+                                    "destination":{"latitude":destination_lat,"longitude":destination_long}
                                     })
                                 );
-                sendInterval= setInterval(sendServer,5000,true,carType,lat,long);
+                sendInterval= setInterval(sendServer,5000,origin_lat,origin_long);
             }
             else{
                 btn.classList.add('btn-primary');
@@ -202,10 +233,8 @@
 
 
 
-    function sendServer(search,carType,lat,long){
+    function sendServer(lat,long){
         chatSocket.send(JSON.stringify({
-             'search':search,
-             'carType':carType,
              'location': {'latitude': lat ,
                            'longitude':long,
                          }
@@ -223,14 +252,17 @@
      chatSocket.onmessage = function(e) {
          const data = JSON.parse(e.data);
          console.log(data);
-         drivers=data['drivers'];
-         if (drivers.length){
-            nearby=document.getElementById('nearbyDrivers');
-            nearby.textContent=`Number of nearby drivers: ${drivers.length}`
-            for(const driver of drivers){
-                layer.getSource().addFeature(createMarker(driver.longitude, driver.latitude));
-                }
-            }
+         if (data){
+            trip=data['trip'];
+         }
+        
+        //  if (drivers.length){
+        //     nearby=document.getElementById('nearbyDrivers');
+        //     nearby.textContent=`Number of nearby drivers: ${drivers.length}`
+        //     for(const driver of drivers){
+        //         layer.getSource().addFeature(createMarker(driver.longitude, driver.latitude));
+        //         }
+        //     }
            
          };
          
