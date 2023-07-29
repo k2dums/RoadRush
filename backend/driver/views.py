@@ -9,7 +9,21 @@ from django.contrib.auth import authenticate, login, logout
 import json
 # Create your views here.
 def index(request):
-    return render(request,'driver/index.html')
+    if not request.user.is_authenticated:
+        return JsonResponse({'Error':"[DRIVER] User not logged in"},status=404)
+    user=None
+    try:
+        user=Driver.objects.get(username=request.user.username)
+    except:
+        return JsonResponse({'Error':'Current User is not a driver'})
+    if user:
+        response=user.serialize()
+        if user.currentTrip:
+            driver=user.currentTrip.driver
+            carId=driver.carId
+            response['carId']=carId
+        return JsonResponse(response)
+
 def loginView(request):
     if request.method=='POST':
         email=request.POST.get('email')
@@ -33,10 +47,11 @@ def loginView(request):
         except  Exception as e:
             print(e)
             return HttpResponse(e)
-     
-       
-
     return render(request,'driver/login.html')
+
+def logoutView(request):
+    logout(request)
+    return HttpResponseRedirect(reverse('driverTest'))
 
 def registerView(request):
     if request.method=='POST':
@@ -77,3 +92,17 @@ def updateDriverLocation(request,carId):
     DriverContoller.updateDriverLocation(carId,location)
     details=DriverContoller.driverDetails(carId)
     return JsonResponse({'driver':details},safe=False)
+
+def driver_test(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'Error':"[DRIVER] User not logged in"},status=404)
+    driver=None
+    try:
+        driver=Driver.objects.get(username=request.user.username)
+    except:
+          return JsonResponse({'Error':'Current User is not a driver'})
+    driver=DriverContoller.getDriver(driver.carId)
+    trip=driver.currentTrip
+    if driver.currentTrip:
+        trip=driver.currentTrip.serialize()
+    return render(request,'driver/index.html',{'useremail':request.user,'username':driver.username,'currentTrip':trip,'driverId':driver.id})
