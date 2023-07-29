@@ -1,9 +1,28 @@
-<script>
+
+   <body>
+    {{ driverId|json_script:'driver-id' }}
+    <h1>Driver</h1>
+    {{email}}
+    <div class="container">
+     <div class="row">
+         <div class="col-10"><h1>Logged in User:{{ useremail }} </h1></div>
+         <div class="col"><a href="{% url 'driver_logout' %}"> <input type="button" class="btn btn-primary" value="Log Out"></a></div>
+     </div>
+     <div class="row">
+         <div class="col">
+             <h5>Current Trip:{{ currentTrip }}</h5>
+         </div>
+        
+     </div>
+   </body>
+
+   <script>
+    const driverId = JSON.parse(document.getElementById('driver-id').textContent);
     let socket= new WebSocket(
        url="ws://"
            +window.location.host
            +'/ws/driver/'
-           +3000
+           +driverId
            +"/"
     )
    
@@ -21,4 +40,3 @@
    
     }
    </script>
-   <h1>Driver Home asdasds</h1>
