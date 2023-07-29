@@ -3,11 +3,11 @@ import json
 from controllers.controllers import DriverContoller
 class DriverConsumer(WebsocketConsumer):
     def connect(self):
-        self.carId=self.scope['url_route']['kwargs']['driver_id']
-        print('[Driver] Connection Request DRIVER:%s' % self.driver_id)
+        self.driverId=self.scope['url_route']['kwargs']['driver_id']
+        print('[Driver] Connection Request DRIVER:%s' % self.driverId)
         self.accept()
     def disconnect(self,close_code):
-        print('[Driver] Disconnected DRIVER:%s' % self.driver_id)
+        print('[Driver] Disconnected DRIVER:%s' % self.driverId)
         pass
     def receive(self, text_data):
         text_data_json=json.loads(text_data)
