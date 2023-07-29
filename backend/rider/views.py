@@ -15,7 +15,7 @@ from django.shortcuts import get_object_or_404
 
 def index(request):
     if not request.user.is_authenticated:
-        return JsonResponse({'Error':"User not logged in"},status=404)
+        return JsonResponse({'Error':"[RIDER] User not logged in"},status=404)
     user=None
     try:
         user=Rider.objects.get(username=request.user.username)
@@ -87,6 +87,8 @@ def rider_test_loc(request):
     return render(request,'rider/test_loc.html',{'username':request.user.username})
 
 def rider_test(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'Error':"[RIDER] User not logged in"},status=404)
     rider=RiderController.getRider(request.user.username)
     trip=rider.currentTrip
     if rider.currentTrip:
