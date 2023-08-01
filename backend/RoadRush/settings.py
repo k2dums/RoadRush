@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'apis',
     'trips',
     'strategies',
+    'clientChannel',
 ]
 
 MIDDLEWARE = [
