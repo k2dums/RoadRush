@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import WebsocketConsumer
 from enum import Enum
 from controllers.controllers import DriverContoller,TripsController
+from clientChannel.models import RiderClientChannel,Rider
 import time
 class RiderStatus(Enum):
     """
@@ -26,16 +27,35 @@ class RiderConsumer(WebsocketConsumer):
         self.rider_status=RiderStatus.NONE
         self.previousLocation=None
         self.priority=DriverContoller.Priority.NORMAL
+        try:
+            self.rider=Rider.objects.get(username=self.rider_name)
+        except Exception:
+            self.accept()
+            self.send(text_data=json.dumps({'Error':"No such rider exists"}))
+            self.close()
+            print('Error: No such rider exists')
+            return
+
+
+        #the user will be taken  from django.contrib.auth
+        riderChannel=RiderClientChannel.objects.filter(rider=self.rider)
+        if riderChannel: #channel already exists, accept, send error, disconnect
+            self.accept()
+            self.send(text_data=json.dumps({'Error':'User logged in already from some other device'}))
+            self.close()
+            print('Error: User [RIDER] logged in already from some other device')
+            return
+        RiderClientChannel.objects.create(channel_name=self.channel_name,rider=self.rider)
         if not self.rider_status:
             self.rider_status=RiderStatus.NONE
         print('Connection request from RIDER:%s' % self.rider_name)
         self.accept()
-        
 
+    #need for a decorator to check if authenthicated
     def disconnect(self,close_code):
+        RiderClientChannel.objects.filter(channel_name=self.channel_name).delete()
         print('[RIDER] Disconnected RIDER:%s' % self.rider_name)
     
-  
     def receive(self, text_data):
         #limit the rate at which we are getting receive per 1 sec receive only 1 location ping 
         try:
@@ -43,38 +63,37 @@ class RiderConsumer(WebsocketConsumer):
         except:
             self.send(json.dumps({"Error":'Data not in json format',"status":300}))
             return 
-        location=text_data_json.get('location')#will get location per 5sec interval
-        destination=text_data_json.get('destination')
-
-        test=text_data_json.get('test')
-        search=text_data_json.get('search') #analogus to booking
-        endTrip=text_data_json.get('endTrip')
-        bid=text_data_json.get('bid')
-
+        #creating a action variable that sets the action
         print(f'Data sent by {self.rider_name}-{text_data}')
+        action=text_data_json.get('action')
+        if (action=='test'):
+            self.action_test(text_data_json)
 
-        if (test):
+        if  action=='search': #if rider wants to search
+            self.action_search(text_data_json)
+        elif  action=='bid':
+            self.action.bid(text_data_json)
+        elif action=='endtrip':
+            pass
+        else:
+            self.send("No valid action was sent (search,bid,endTrip)")
+            
+        # if location and search:
+        #     drivers=DriverContoller.getCars(location)
+        #     if drivers:
+        #         self.send(text_data={"search" :{"drivers":drivers,"status":'OK'}})
+        #     else:# if no drivers:
+        #         self.send(text_data={"search" :{"drivers":drivers,"status":'NA'}})
+        # self.send(text_data={"search" :{"drivers":drivers,"status":'Invalid location'}})
+        # #so after every x interval we send them drivers within a proximity
+        # #what if we can't find the drivers (try till x sec then return null drivers)
+        # #what if we are searching and we get pinged a locati        
+    
+    def action_search(self,text_data_json):
+            location=text_data_json.get('location')#will get location per 5sec interval
+            destination=text_data_json.get('destination')
             emergency=text_data_json.get('emergency')
             self.carType=text_data_json.get('carType')
-            location=text_data_json.get('location')
-            self.send(text_data=json.dumps({'Success':'Test query received successfully'}))
-            self.send(text_data=json.dumps({"Sent by user":text_data_json}))
-
-            if not location:
-                self.send(text_data=json.dumps({'error':'No location sent'}))
-            if search:
-                trip=DriverContoller.getCarsforBooking(self.rider_name,location,destination,self.carType,self.priority)
-                print('Trip made by server',trip)
-                self.send(text_data=json.dumps(trip.serialize()))
-            else:
-                drivers=DriverContoller.getCars(location,self.carType)
-                self.send(text_data=json.dumps({'drivers':[ driverSerialization(driver) for driver in drivers]}))
-            return 
-
-        if  search: #if rider wants to search
-            emergency=text_data_json.get('emergency')
-            self.carType=text_data_json.get('carType')
-
             if emergency:
                 self.priority=DriverContoller.Priority.EMERGENCY
             
@@ -108,9 +127,11 @@ class RiderConsumer(WebsocketConsumer):
                     response={'Error':'Origin Location not given','status':400}
                 print(f"[SERVER] Data sent to the [user]:{self.rider_name}],{response}")
                 self.send(text_data=json.dumps(response))
-        elif  bid:
-            pass
-        elif endTrip:
+
+    def action_bid(self,text_data_json):
+        pass
+
+    def action_endTrip(self,text_data_json):
             carId=text_data_json.get('carId')
             action=text_data_json.get('action')
             if not carId:
@@ -122,20 +143,27 @@ class RiderConsumer(WebsocketConsumer):
             response=TripsController.endTrip(carId,self.rider_name,action)
             print(f"[SERVER] Data sent to [{self.rider_name}]",response)
             self.send(json.dumps(f"{response}"))
-        else:
-            self.send("No valid action was sent (search,bid,endTrip)")
-            
-        # if location and search:
-        #     drivers=DriverContoller.getCars(location)
-        #     if drivers:
-        #         self.send(text_data={"search" :{"drivers":drivers,"status":'OK'}})
-        #     else:# if no drivers:
-        #         self.send(text_data={"search" :{"drivers":drivers,"status":'NA'}})
-        # self.send(text_data={"search" :{"drivers":drivers,"status":'Invalid location'}})
-        # #so after every x interval we send them drivers within a proximity
-        # #what if we can't find the drivers (try till x sec then return null drivers)
-        # #what if we are searching and we get pinged a locati        
-    
+
+    def action_test(self,text_data_json):
+            location=text_data_json.get('location')
+            destination=text_data_json.get('destination')
+            action=text_data_json.get('action')
+            emergency=text_data_json.get('emergency')
+            self.carType=text_data_json.get('carType')
+            location=text_data_json.get('location')
+            self.send(text_data=json.dumps({'Success':'Test query received successfully'}))
+            self.send(text_data=json.dumps({"Sent by user":text_data_json}))
+            if not location:
+                self.send(text_data=json.dumps({'error':'No location sent'}))
+            if action=='search':
+                trip=DriverContoller.getCarsforBooking(self.rider_name,location,destination,self.carType,self.priority)
+                print('Trip made by server',trip)
+                self.send(text_data=json.dumps(trip.serialize()))
+            else:
+                drivers=DriverContoller.getCars(location,self.carType)
+                self.send(text_data=json.dumps({'drivers':[ driverSerialization(driver) for driver in drivers]}))
+            return 
+
 def driverSerialization(driver):
     return {
             'occupiedStatus':driver.occupiedStatus,
