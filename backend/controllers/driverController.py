@@ -1,6 +1,10 @@
 from managers.managers import DriverManager,RiderManager
 from .tripsController import TripsController
 from strategies.cabMatchingStratergy import CabMatchingStratergy as Stratergy
+from clientChannel.models import DriverClientChannel
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import json
 class DriverContoller:
     class Priority:
         NORMAL="NORMAL"
@@ -62,7 +66,8 @@ class DriverContoller:
     
     @classmethod
     def getCarsforBooking(cls,username,location,destination,carType,priority=Priority.NORMAL):
-        rider=RiderManager.getRider(username)
+        rider=RiderManager.getRider(username) #this user verification needs to enforced in the upper invoker, otherwise this will cause error
+        #The Consumer from the rider Consumer already needs to verify the rider object, thus from the consumer itself the rider object can be passed, rather thatn only the username
         from rider.models import Rider
         assert isinstance(rider,Rider)
         if rider.currentTrip:
@@ -71,8 +76,27 @@ class DriverContoller:
         print("driver/controller/getCarsforBooking [GETTING] drivers",drivers)
         driver=Stratergy.matchCars(drivers)
         print("driver/controller/getCarsforBooking [MATCHING] drivers",driver)
+        driverChannelName=None
         if driver:
-            trip=TripsController.createTrip(rider,driver,location,destination)
-            return trip,True
+            try:
+                driverChannelName=DriverClientChannel.objects.get(driver=driver)
+            except:
+                return {'Error':'Driver does not exist/ mismatch','status':404},False
+            channel_layer=get_channel_layer()
+            async_to_sync(channel_layer.send)(driverChannelName.channel_name,{
+                                "type":"trip_request",
+                                'origin':{
+                                          'longitude':location['longitude'],
+                                          'latitude':location['latitude']
+                                          },
+                                'destination':{
+                                          'longitude':destination['longitude'],
+                                          'latitude':destination['latitude']
+                                          },
+                                'rider_id':rider.id,
+                                'rider_username':rider.username,
+            })
+            # trip=TripsController.createTrip(rider,driver,location,destination)
+            return {'request':'Sent trip request to Driver'},False
         return {'NA':'No ride is currently available','status':404},False #no driver found 
             
