@@ -4,10 +4,10 @@ from controllers.controllers import DriverContoller
 from clientChannel.models import DriverClientChannel,Driver
 class DriverConsumer(WebsocketConsumer):
     def connect(self):
-        self.driverId=self.scope['url_route']['kwargs']['driver_id']
+        self.driver_username=self.scope['url_route']['kwargs']['driver_username']
         #getting the driver obj based on django.contrib.auth
         try:
-            self.driver=Driver.objects.get(id=self.driverId)
+            self.driver=Driver.objects.get(username=self.driver_username)
         except:
             self.accept()
             self.send(text_data=json.dumps({'Error':"No such driver exists"}))
@@ -57,4 +57,5 @@ class DriverConsumer(WebsocketConsumer):
                                             }
                                         }
                                         }))
-    
+    def trip_accept(self):
+        pass
