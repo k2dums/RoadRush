@@ -2,7 +2,8 @@ import json
 from channels.generic.websocket import WebsocketConsumer
 from enum import Enum
 from controllers.controllers import DriverContoller,TripsController
-from clientChannel.models import RiderClientChannel,Rider
+from trips.models import Trips 
+from clientChannel.models import RiderClientChannel,Rider,Driver
 import time
 class RiderStatus(Enum):
     """
@@ -43,12 +44,12 @@ class RiderConsumer(WebsocketConsumer):
             self.accept()
             self.send(text_data=json.dumps({'Error':'User logged in already from some other device'}))
             self.close()
-            print('Error: User [RIDER] logged in already from some other device')
+            print('[RIDER] Error: User [RIDER] logged in already from some other device')
             return
         RiderClientChannel.objects.create(channel_name=self.channel_name,rider=self.rider)
         if not self.rider_status:
             self.rider_status=RiderStatus.NONE
-        print('Connection request from RIDER:%s' % self.rider_name)
+        print('[RIDER] Connection request from RIDER:%s' % self.rider_name)
         self.accept()
 
     #need for a decorator to check if authenthicated
@@ -66,8 +67,6 @@ class RiderConsumer(WebsocketConsumer):
         #creating a action variable that sets the action
         print(f'Data sent by {self.rider_name}-{text_data}')
         action=text_data_json.get('action')
-        if (action=='test'):
-            self.action_test(text_data_json)
 
         if  action=='search': #if rider wants to search
             self.action_search(text_data_json)
@@ -75,6 +74,8 @@ class RiderConsumer(WebsocketConsumer):
             self.action.bid(text_data_json)
         elif action=='endtrip':
             pass
+        elif (action=='test'):
+            self.action_test(text_data_json)
         else:
             self.send("No valid action was sent (search,bid,endTrip)")
             
@@ -155,6 +156,7 @@ class RiderConsumer(WebsocketConsumer):
             self.send(text_data=json.dumps({"Sent by user":text_data_json}))
             if not location:
                 self.send(text_data=json.dumps({'error':'No location sent'}))
+                return
             if action=='search':
                 trip=DriverContoller.getCarsforBooking(self.rider_name,location,destination,self.carType,self.priority)
                 print('Trip made by server',trip)
@@ -163,6 +165,31 @@ class RiderConsumer(WebsocketConsumer):
                 drivers=DriverContoller.getCars(location,self.carType)
                 self.send(text_data=json.dumps({'drivers':[ driverSerialization(driver) for driver in drivers]}))
             return 
+        
+    
+    #_______________EVENTS____________________________________
+    def trip_accept(self,event):
+        print('[RIDER] Trip accept request received ')
+        print(f'Trip_accept() call back function \n {event} ')
+        rider=event['rider']
+        driver=event['driver']
+        origin=event['origin']
+        destination=event['destination']
+        self.send(text_data=json.dumps({'type':'Trip', #trip request is only sent to drivers
+                                        'trip':{
+                                            'origin':origin,
+                                            'destination':destination,
+                                            'rider':rider,
+                                            'driver':driver,
+                                            'status':Trips.Trip_Status.BOOKED
+                                        }
+                                        }))
+        driver_obj=Driver.objects.get(username=driver['username'])
+        rider_obj=Rider.objects.get(username=rider['username'])
+        print(TripsController.createTrip(rider_obj,driver_obj,origin,destination))
+        
+ 
+    
 
 def driverSerialization(driver):
     return {
