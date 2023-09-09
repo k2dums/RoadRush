@@ -33,7 +33,7 @@ class UserManager(BaseUserManager):
         user=self.create_user(username,email,password)
         user.is_superuser=True
         user.is_staff=True
-        user.type=User.Types.NONE
+        user.type=User.UserTypes.NONE
         user.save()
        
         return user #Why are we returing the user here in create_superuser()?
