@@ -101,8 +101,7 @@ class DriverManager:
         latitude=_location['latitude']
         # ProximityValue=ProximityValue*1000
         userLocation=Point(float(longitude),float(latitude),srid=4236)
-
-        if not(carType) or carType.upper==None:
+        if not(carType) or carType.upper()=="NONE":
             drivers=Driver.objects.filter(location__distance_lte=(userLocation, D(km=ProximityValue)) ,occupiedStatus=False).annotate(distance=Distance('location',userLocation)).order_by('distance') 
             return drivers 
         drivers=Driver.objects.filter(location__distance_lte=(userLocation, D(km=ProximityValue)),carType=carType.upper(),occupiedStatus=False).annotate(distance=Distance('location',userLocation)).order_by('distance')        
