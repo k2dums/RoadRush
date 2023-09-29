@@ -4,6 +4,8 @@ from managers.managers import RiderManager,DriverManager
 from trips.models import Trips
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import fromstr
+from rider.models import Rider
+from driver.models import Driver
 class TripsManager:
     allowed_status=[Trips.Trip_Status.BOOKED,Trips.Trip_Status.CANCELLED,Trips.Trip_Status.COMPLETED,Trips.Trip_Status.ONGOING,Trips.Trip_Status.NA]
 
@@ -21,6 +23,7 @@ class TripsManager:
     def getTrip(tripId):
         trip=Trips.objects.get(id=tripId)
         return trip
+    
     @classmethod
     def createTrip(cls,rider,driver,origin,destination):
         """Creates trip based on the the username and carId"""
@@ -41,20 +44,80 @@ class TripsManager:
     #     """Creates trip based on username and carId, origin and destination"""
     #     rider=RiderManager.getRider(username)
     #     return TripsManager.createTrip_riderObj(rider,carId,origin,destination)
-
+    @classmethod 
+    def cancelTrip(cls,carId,username):
+        try:
+            driver=DriverManager.getDriver(carId)
+            rider=RiderManager.gerRider(username)
+        except:
+            return False,{'Error':'Invalid/Missing carId or username'}
+        response=TripsManager.check_TripIntegrity(rider,driver)
+        if response:
+            return False,response
+        trip=driver.currentTrip
+        
+        return TripsManager.cancelTrip_byObjects(rider,driver,trip)
+        
+    
     @classmethod
-    def endTrip(cls,carId,username,action):
+    def endTrip(cls,carId,username):
         """Ends the trip of the car, a trip ends only if it is cancelled or endtrip"""
         try:
             driver=DriverManager.getDriver(carId)
             rider=RiderManager.getRider(username)
         except:
-            return {"Error":'Invalid/Missing carI or username'}
+            return False,{"Error":'Invalid/Missing carId or username'}
+        response=TripsManager.check_TripIntegrity(rider,driver)
+        if response:
+            return False,response
         trip=driver.currentTrip
-        riderTrip=rider.currentTrip
-
-        print('Driver trip:',trip)
-        print('Rider trip',riderTrip)
+        return TripsManager.endTrip_byObjects(rider,driver,trip)
+        
+    @classmethod
+    def endTrip_byObjects(cls,riderObj,driverObj,trip_obj):  
+        try:
+            response=TripsManager.updateTripStatus(trip_obj,Trips.Trip_Status.COMPLETED)
+            if not response:
+                return False,{"Error":"Action not allowed for the trip completion/ending"}
+        except:
+            return False,{"Error":"Ending/Completion of the trip incurred a error"}
+        
+        try:
+            DriverManager.endTrip(driverObj)
+            RiderManager.endTrip(riderObj)
+        except:
+            return False,{"Error":"Updating the status of the driver/rider incurred a error while ending/completion"}
+        
+        return True,f"Successfully completed the trip {trip_obj.id}"
+    
+    @classmethod
+    def cancelTrip_byObjects(cls,riderObj,driverObj,trip_Obj):
+      
+        try:
+            response=TripsManager.updateTripStatus(trip_Obj,Trips.Trip_Status.CANCELLED) 
+            if not(response):
+                return False,{'Error':'Action is not allowed for the trip cancellation'}
+        except:
+            return False,{'Error':'Cancelling the trip incurred a error'}
+        try:
+            DriverManager.endTrip(driverObj)
+            RiderManager.endTrip(riderObj)
+        except:
+            return False,{"Error":"Updating the status of the driver/rider incurred a error when cancelling"}
+        return True,f"Successfully cancelled the trip {trip_Obj.id}"
+    
+    @classmethod
+    def check_TripIntegrity(cls,riderObj,driverObj):
+        try:
+            assert isinstance(riderObj,Rider)
+            assert isinstance(driverObj,Driver)
+        except:
+            return {'Error':'Not of type Rider/Driver'}
+        try:
+            trip=driverObj.currentTrip
+            riderTrip=riderObj.currentTrip
+        except:
+            return {'Error':'Rider/Driver doesn\'t have attribute currentTrip'}
         if not(trip) or not(riderTrip):
             return{
                 "Error":"Driver/Rider has no currentTrips"
@@ -64,26 +127,8 @@ class TripsManager:
             return {
                 'Error':"Integrity Error, rider and driver points to different trip"
             }
-       
-        assert isinstance(trip,Trips)
-
-        if not(action.upper() in [Trips.Trip_Status.CANCELLED,Trips.Trip_Status.COMPLETED]):
-            return {"Error":"Invalid action (action is not an allowed action)"}
         try:
-            response=TripsManager.updateTripStatus(trip,action.upper())
-            print("Response",response)
-            if not response:
-                return {"Error":"Invalid action (action is not an allowed action)"}
+            assert isinstance(trip,Trips)
         except:
-            return {"Error":"Invalid input for action"}
-        
-        try:
-            DriverManager.endTrip(driver)
-            RiderManager.endTrip(rider)
-        except:
-            return {"Error":"Error when updating and ending trip"}
-        
-        return f"Successfully ended the trip {trip.id}"
-        
-
+            return {'Error':'trip is not of type Trip'}
 
