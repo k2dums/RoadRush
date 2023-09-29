@@ -81,7 +81,7 @@
                 <label for="origin_lat">Latitude</label>
                 <input id="origin_lat" name="origin_lat" type="text"   value="27.3283">
                 <label for="origin_long" >longitude</label>
-                <input id='origin_long' name="origin_long" type="text"  value="88.613">
+                <input id='origin_long' name="origin_long" type="text"  value="88.6124">
             </div>
 
             <div class="col">
@@ -151,15 +151,6 @@
         source:new ol.source.OSM()
      })
     
-//      layer = new ol.layer.Vector({
-//      source: new ol.source.Vector({
-//          features: [
-//              new ol.Feature({
-//                  geometry: new ol.geom.Point(ol.proj.fromLonLat([88.6124,27.3283]))
-//              })
-//          ]
-//      })
-//  });
 
      
         function searchAndStop(){
@@ -193,24 +184,26 @@
                 center:ol.proj.fromLonLat([origin_long,origin_lat]),
                 zoom:14,
                 });
+
                 map=new ol.Map({
                 target:'map',
                 view:mapView
                 })
+
                 layer = new ol.layer.Vector({
-     source: new ol.source.Vector({
-         features: [
-             new ol.Feature({
+                source: new ol.source.Vector({
+                features: [
+                new ol.Feature({
                  geometry: new ol.geom.Point(ol.proj.fromLonLat([origin_long,origin_lat]))
-             })
-         ]
-     })
- });
+                 })
+                 ]
+                })
+                });
 
                 map.addLayer(osmTile);
                 map.addLayer(layer)
                 chatSocket.send(JSON.stringify({
-                                    "search":true,
+                                    "action":'search',
                                     "carType":carType,
                                     "location":{"latitude":origin_lat,"longitude":origin_long},
                                     "destination":{"latitude":destination_lat,"longitude":destination_long}
