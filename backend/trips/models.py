@@ -22,18 +22,24 @@ class Trips(models.Model):
 
     def serialize(self):
         return {
-    "tripId":self.id,
-    "rider":self.rider.username,
-    "driver name":self.driver.username,
-    "carId":self.driver.id,
-    "car Type":self.driver.carType,
-    "car Number":self.driver.carNumber,
-    "car Model":self.driver.carModel,
-    "time start":str(self.time_start),
+    "id":self.id,
+    "status":self.status,
     "origin":{"longitude":self.origin[0],"latitude":self.origin[1]},
     "destination":{"longitude":self.destination[0],"latitude":self.destination[1]},
-    "status":self.status
-        }
+    "rider":{
+        'username':self.rider.username,
+    },
+    "driver":{
+        'username':self.driver.username,
+    },
+    "car":{
+        "id":self.driver.id,
+        "type":self.driver.carType,
+        "number":self.driver.carNumber,
+        "model":self.driver.carModel,
+    },
+    "time start":str(self.time_start),
+    }
 
     def __str__(self):
         return f"Trip Id:{self.id}" #will change to uuid
