@@ -141,11 +141,15 @@
                 map.addLayer(osmTile);
                 map.addLayer(layer)
                 chatSocket.send(JSON.stringify({
-                                    'newSearch':true,
-                                    'carType':carType
+                                    'action':'test',
+                                    'carType':carType,
+                                    'location': {
+                                        'latitude': lat ,
+                                        'longitude':long,
+                         }
                                     })
                                 );
-                sendInterval= setInterval(sendServer,5000,true,carType,lat,long);
+                sendInterval= setInterval(sendServer,5000,carType,lat,long);
             }
             else{
                 btn.classList.add('btn-primary');
@@ -162,9 +166,8 @@
 
 
 
-    function sendServer(test,carType,lat,long){
+    function sendServer(carType,lat,long){
         chatSocket.send(JSON.stringify({
-             'test':test,
              'carType':carType,
              'location': {'latitude': lat ,
                            'longitude':long,
