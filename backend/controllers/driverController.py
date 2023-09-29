@@ -85,18 +85,24 @@ class DriverContoller:
             channel_layer=get_channel_layer()
             async_to_sync(channel_layer.send)(driverChannelName.channel_name,{
                                 "type":"trip_request",
-                                'origin':{
-                                          'longitude':location['longitude'],
-                                          'latitude':location['latitude']
-                                          },
-                                'destination':{
-                                          'longitude':destination['longitude'],
-                                          'latitude':destination['latitude']
-                                          },
-                                'rider_id':rider.id,
-                                'rider_username':rider.username,
-            })
+                                "message":{
+                                    "trip":{
+                                            'origin':{
+                                                'longitude':location['longitude'],
+                                                'latitude':location['latitude']
+                                                },
+                                            'destination':{
+                                                'longitude':destination['longitude'],
+                                                'latitude':destination['latitude']
+                                                },
+                                            'rider':{
+                                                'id':rider.id,
+                                                'username':rider.username
+                                                }
+                                             }
+                                }
+                            })
             # trip=TripsController.createTrip(rider,driver,location,destination)
-            return {'request':'Sent trip request to Driver'},False
+            return {'request':'Sent trip request to Driver'},True
         return {'NA':'No ride is currently available','status':404},False #no driver found 
             
