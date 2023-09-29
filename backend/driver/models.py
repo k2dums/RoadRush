@@ -41,4 +41,7 @@ class Driver(User):
             'carNumber':self.carNumber,
             'carModel':self.carModel,
         }
+    
+    def __str__(self):
+        return f"Username:{self.username}, occupiedStatus:{self.occupiedStatus}, currentTrip:{self.currentTrip}"
 
