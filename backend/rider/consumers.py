@@ -3,8 +3,13 @@ from channels.generic.websocket import WebsocketConsumer
 from enum import Enum
 from controllers.controllers import DriverContoller,TripsController
 from trips.models import Trips 
-from clientChannel.models import RiderClientChannel,Rider,Driver
+from clientChannel.models import RiderClientChannel,Rider,Driver,DriverClientChannel
 import time
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from common.request import RequestType 
+import common.common as Common
+from common.common import MessageType
 class RiderStatus(Enum):
     """
     RIDING:the rider is intransit, enoroute to destination
@@ -66,18 +71,21 @@ class RiderConsumer(WebsocketConsumer):
             return 
         #creating a action variable that sets the action
         print(f'Data sent by {self.rider_name}-{text_data}')
-        action=text_data_json.get('action')
+        
+        request_type=text_data_json.get('type','NA').upper()
 
-        if  action=='search': #if rider wants to search
-            self.action_search(text_data_json)
-        elif  action=='bid':
-            self.action.bid(text_data_json)
-        elif action=='endtrip':
-            pass
-        elif (action=='test'):
-            self.action_test(text_data_json)
+        if  request_type==RequestType.TripSearch: #if rider wants to search
+            self.trip_search(text_data_json)
+        elif  request_type==RequestType.TripBid:
+            self.trip_bid(text_data_json)
+        elif request_type==RequestType.TripCancel:
+            self.trip_cancel(text_data_json)
+        elif request_type==RequestType.TripTest:
+            self.trip_test(text_data_json)
+        elif request_type==RequestType.TripBidAccept:
+            self.trip_bid_accept(text_data_json)
         else:
-            self.send("No valid action was sent (search,bid,endTrip)")
+            self.send("Not a valid request Type was sent to the server")
             
         # if location and search:
         #     drivers=DriverContoller.getCars(location)
@@ -89,12 +97,19 @@ class RiderConsumer(WebsocketConsumer):
         # #so after every x interval we send them drivers within a proximity
         # #what if we can't find the drivers (try till x sec then return null drivers)
         # #what if we are searching and we get pinged a locati        
-    
-    def action_search(self,text_data_json):
-            location=text_data_json.get('location')#will get location per 5sec interval
-            destination=text_data_json.get('destination')
-            emergency=text_data_json.get('emergency')
-            self.carType=text_data_json.get('carType')
+
+#_____________________Helper Functions
+    def trip_search(self,text_data_json):
+            print('[RIDER] trip_search()')
+            try:
+                trip=text_data_json.get('message').get('trip')
+            except:
+                Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Check if the data is in format'})
+                return
+            location=trip.get('location')#will get location per 5sec interval
+            destination=trip.get('destination')
+            emergency=trip.get('emergency')
+            self.carType=trip.get('carType')
             if emergency:
                 self.priority=DriverContoller.Priority.EMERGENCY
             
@@ -105,13 +120,14 @@ class RiderConsumer(WebsocketConsumer):
                     # while(tries<=RiderConsumer.MAX_BOOK_TRIES):
                     response,flag=DriverContoller.getCarsforBooking(self.rider_name,location,destination,self.carType)
                     if flag:
-                        #if flag is true the response is a Trip instance
+                        #if flag is true the response 
                         print(f"[SERVER] Data sent to the [user:{self.rider_name}],{response}")
-                        self.send(text_data=json.dumps({"trip":response.serialize(),"status":200}))
+                        response['status']=200
+                        Common.selfSendMessg(self,MessageType.TRIP_REQUEST,response)
                     else:
                         #if flag is flase it returns a repsonse
                         print(f"[SERVER] Data sent to the [user:{self.rider_name}],{response}")
-                        self.send(text_data=json.dumps(response))
+                        Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,response)
                         # break
                         # time.sleep(4000)
                         # tries+=1
@@ -121,75 +137,133 @@ class RiderConsumer(WebsocketConsumer):
                     response={"Error":"Invalid Destination location",'status':400}
                     if not destination:
                         response={"Error":"Destination location not given",'status':400}
-                    self.send(text_data=json.dumps(response))
+                        Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,response)
             else:#Invalid/Missing destination location
                 response={"Error":'Invalid Origin location','status':400}
                 if not location:
                     response={'Error':'Origin Location not given','status':400}
-                print(f"[SERVER] Data sent to the [user]:{self.rider_name}],{response}")
-                self.send(text_data=json.dumps(response))
+                Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,response)
 
-    def action_bid(self,text_data_json):
-        pass
-
-    def action_endTrip(self,text_data_json):
-            carId=text_data_json.get('carId')
-            action=text_data_json.get('action')
-            if not carId:
-                self.send(json.dumps({"Error":"carId not given"}))
-                return 
-            if not action:
-                self.send(json.dumps({"Error":"action not given"}))
+    def trip_test(self,text_data_json):
+            print('[RIDER] trip_test()')
+            try:
+                location=text_data_json['location']
+                emergency=text_data_json.get('emergency')
+                self.carType=text_data_json['carType']
+                location=text_data_json['location']
+                self.send(text_data=json.dumps({'Success':'Test query received successfully'}))
+                self.send(text_data=json.dumps({"Sent by user":text_data_json}))
+            except:
+                self.send(text_data=json.dumps(
+                    {'Error':'Check if data sent is in format'}
+                ))
                 return
-            response=TripsController.endTrip(carId,self.rider_name,action)
-            print(f"[SERVER] Data sent to [{self.rider_name}]",response)
-            self.send(json.dumps(f"{response}"))
-
-    def action_test(self,text_data_json):
-            location=text_data_json.get('location')
-            destination=text_data_json.get('destination')
-            action=text_data_json.get('action')
-            emergency=text_data_json.get('emergency')
-            self.carType=text_data_json.get('carType')
-            location=text_data_json.get('location')
-            self.send(text_data=json.dumps({'Success':'Test query received successfully'}))
-            self.send(text_data=json.dumps({"Sent by user":text_data_json}))
             if not location:
                 self.send(text_data=json.dumps({'error':'No location sent'}))
                 return
-            if action=='search':
-                trip=DriverContoller.getCarsforBooking(self.rider_name,location,destination,self.carType,self.priority)
-                print('Trip made by server',trip)
-                self.send(text_data=json.dumps(trip.serialize()))
-            else:
-                drivers=DriverContoller.getCars(location,self.carType)
-                self.send(text_data=json.dumps({'drivers':[ driverSerialization(driver) for driver in drivers]}))
+          
+            drivers=DriverContoller.getCars(location,self.carType)
+            self.send(text_data=json.dumps({'drivers':[ driverSerialization(driver) for driver in drivers]}))
             return 
         
-    
-    #_______________EVENTS____________________________________
-    def trip_accept(self,event):
-        print('[RIDER] Trip accept request received ')
-        print(f'Trip_accept() call back function \n {event} ')
-        rider=event['rider']
-        driver=event['driver']
-        origin=event['origin']
-        destination=event['destination']
-        self.send(text_data=json.dumps({'type':'Trip', #trip request is only sent to drivers
-                                        'trip':{
-                                            'origin':origin,
-                                            'destination':destination,
-                                            'rider':rider,
-                                            'driver':driver,
-                                            'status':Trips.Trip_Status.BOOKED
-                                        }
-                                        }))
-        driver_obj=Driver.objects.get(username=driver['username'])
-        rider_obj=Rider.objects.get(username=rider['username'])
-        print(TripsController.createTrip(rider_obj,driver_obj,origin,destination))
+    def trip_cancel(self,text_data_json):
+        print('[RIDER] trip_cancel()')
+        flag,response=Common.trip_cancel(self,text_data_json)
+        if not(flag):
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,response)
+        else:
+            if not(Common.sendDriverMessage(MessageType.TRIP_CANCEL_MESSAGE,response,text_data_json)):
+                Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Error sending message to the driverClient'})
+            Common.selfSendMessg(self,MessageType.TRIP_CANCEL_MESSAGE,response)
         
- 
     
+    def trip_bid(self,text_data_json):
+        print('[RIDER] trip_bid()')
+        flag,response=Common.trip_bid(self,text_data_json)
+        if not(flag):
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,response)
+        else:
+            try:
+                if not(Common.sendDriverMessage(MessageType.BID_REQUEST,response,text_data_json)):
+                    Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'error sending message to driverClient'})
+                Common.selfSendMessg(self,MessageType.BID_REQUEST,{'request':f'Sending bid request of [{text_data_json["message"]["trip"]["bid_value"]}] for Trip {text_data_json["message"]["trip"]["id"]}'})
+            except:
+                Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Check if the data is in format '})
+            
+    
+    def trip_bid_accept(self,text_data_json):
+        print('[Driver] trip_bid_accept()')
+        try:
+            Common.sendRiderMessage(MessageType.FINAL,text_data_json['message'],text_data_json)
+            Common.selfSendMessg(self,MessageType.FINAL,text_data_json['message'])
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'error sending final value'})
+
+    #_______________EVENTS____________________________________
+    def trip_data(self,event): #gets called only when trip is accepted by the driver
+        print(f'Trip_data() call back function Rider Consumer ')
+        print(event)
+        try:
+            rider=event['message']['trip']['rider']
+            driver=event['message']['trip']['driver']
+            origin=event['message']['trip']['origin']
+            destination=event['message']['trip']['destination']
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'check format of the sent data trip_data '})
+            return
+        try:
+           driver_obj=Driver.objects.get(username=driver['username'])
+           rider_obj=Rider.objects.get(username=rider['username'])
+        except:
+            self.send(text_data=json.dumps({'Error':'Could not find the driver channel'}))
+        try:
+            tripData=TripsController.createTrip(rider_obj,driver_obj,origin,destination)
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':"Error creating trips"})
+            return 
+        try:
+            if not(Common.sendDriverMessageObj(MessageType.TRIP_DATA,{"trip":tripData.serialize()},driver_obj)):
+                Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error',"Error sending message to driverClientChannel"})
+            Common.selfSendMessg(self,MessageType.TRIP_DATA,{"trip":tripData.serialize()})
+        except:
+            self.send(text_data=json.dumps({'Error':'Check the format of the data sent for trip_accept request'}))
+            return 
+            
+        
+    def bid_request(self,event): #rider receives bid request from the driver
+        print(f'bid_request() call back function Rider Consumer')
+        try:
+            Common.selfSendMessg(self,MessageType.BID_REQUEST,event['message'])
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Error when sending bid_request to the rider'})
+    
+    def bid_accept(self,event):
+        print(f'bid_accept() call back function Rider Consumer')
+        try:
+            Common.selfSendMessg(self,MessageType.BID_REQUEST,event['message'])
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Error when sending bid_accept to the rider'})
+
+    def tripCancel_Message(self,event):
+        print('trip_cancelMessage() call back funciton Rider consumer')
+        try:
+            Common.selfSendMessg(self,MessageType.TRIP_CANCEL_MESSAGE,event['message'])
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Error when sending trip_cancelMessage to the rider'})
+
+    def tripCompleted_Message(self,event):
+        print('trip_endMessage() call back function Rider consumer')
+        try:
+            Common.selfSendMessg(self,MessageType.TRIP_END_MESSAGE,event['message'])
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Error when sending trip_EndMessage to the rider'})
+
+    def FINAL(self,event):
+        print('final() call back function Rider consumer')
+        try:
+            Common.selfSendMessg(self,MessageType.FINAL,event['message'])
+        except:
+            Common.selfSendMessg(self,MessageType.ERROR_MESSAGE,{'Error':'Error when sending trip_EndMessage to the rider'})
 
 def driverSerialization(driver):
     return {
